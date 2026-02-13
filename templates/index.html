@@ -20,9 +20,15 @@
         {{range .Series}}
         <a href="/novel/{{.Slug}}" class="novel-row"
             data-status="{{if .Status.Valid}}{{.Status.String}}{{else}}ongoing{{end}}">
+            {{if .ThumbnailURL.Valid}}
+            <div class="novel-row-cover">
+                <img src="{{.ThumbnailURL.String}}" alt="{{.Title}}" class="novel-row-img" loading="lazy">
+            </div>
+            {{else}}
             <div class="novel-row-cover" style="background: {{grad .ID}}">
                 <span class="novel-row-abbr">{{abbr .Title}}</span>
             </div>
+            {{end}}
             <div class="novel-row-info">
                 <div class="novel-row-title">{{.Title}}</div>
                 <div class="novel-row-author">{{if .Author.Valid}}{{.Author.String}}{{else}}Unknown Author{{end}}</div>

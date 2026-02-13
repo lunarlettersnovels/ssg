@@ -3,12 +3,19 @@
 
 {{define "content"}}
 <!-- Full-bleed Cover Banner -->
+{{if .Series.ThumbnailURL.Valid}}
+<div class="series-banner" style="background-image: url('{{.Series.ThumbnailURL.String}}')">
+    <div class="series-banner-overlay"></div>
+    <div class="series-banner-content"></div>
+</div>
+{{else}}
 <div class="series-banner" style="background: {{grad .Series.ID}}">
     <div class="series-banner-overlay"></div>
     <div class="series-banner-content">
         <span class="series-banner-abbr">{{abbr .Series.Title}}</span>
     </div>
 </div>
+{{end}}
 
 <!-- Floating Info Card -->
 <div class="series-info-card">
