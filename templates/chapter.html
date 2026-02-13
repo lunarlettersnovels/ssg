@@ -25,7 +25,10 @@
     </script>
 </head>
 
-<body class="reader-body" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}">
+<body class="reader-body" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}"
+    data-series-slug="{{.Series.Slug}}" data-series-title="{{.Series.Title}}"
+    data-chapter-num="{{.Chapter.ChapterNumber}}"
+    data-chapter-title="{{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}">
     <!-- Reading Progress Bar -->
     <div class="reading-progress-bar" id="reading-progress"></div>
 
@@ -149,17 +152,36 @@
                 const body = document.body;
                 const seriesId = parseInt(body.getAttribute('data-series-id'));
                 const chapterId = parseInt(body.getAttribute('data-chapter-id'));
+
                 if (seriesId && chapterId) {
+                    // 1. LocalStorage (Legacy/Sync)
                     let progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
                     if (!progress[seriesId]) progress[seriesId] = [];
                     if (!progress[seriesId].includes(chapterId)) {
                         progress[seriesId].push(chapterId);
                         localStorage.setItem('reading_progress', JSON.stringify(progress));
                     }
+
+                    // 2. IndexedDB (History)
+                    if (window.LibDB) {
+                        const seriesTitle = body.getAttribute('data-series-title');
+                        const seriesSlug = body.getAttribute('data-series-slug');
+                        const chapterNum = parseFloat(body.getAttribute('data-chapter-num'));
+                        const chapterTitle = body.getAttribute('data-chapter-title');
+
+                        window.LibDB.addToHistory({
+                            id: chapterId,
+                            title: chapterTitle,
+                            seriesTitle: seriesTitle,
+                            seriesSlug: seriesSlug,
+                            chapterNum: chapterNum
+                        });
+                    }
                 }
             } catch (e) {
                 console.error("Error saving progress", e);
             }
+
 
             // Reading progress bar
             const progressBar = document.getElementById('reading-progress');

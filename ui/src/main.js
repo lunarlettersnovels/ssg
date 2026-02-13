@@ -1,6 +1,127 @@
 import './index.css';
 
-document.addEventListener('DOMContentLoaded', () => {
+// ==========================================
+// LibDB: IndexedDB Helper for Library
+// ==========================================
+const LibDB = {
+    DB_NAME: 'LunarLettersDB',
+    DB_VERSION: 1,
+    db: null,
+
+    async open() {
+        if (this.db) return this.db;
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const d = e.target.result;
+                if (!d.objectStoreNames.contains('bookmarks')) {
+                    const bStore = d.createObjectStore('bookmarks', { keyPath: 'slug' });
+                    bStore.createIndex('addedAt', 'addedAt', { unique: false });
+                }
+                if (!d.objectStoreNames.contains('history')) {
+                    const hStore = d.createObjectStore('history', { keyPath: 'id' });
+                    hStore.createIndex('readAt', 'readAt', { unique: false });
+                    hStore.createIndex('seriesSlug', 'seriesSlug', { unique: false });
+                }
+                if (!d.objectStoreNames.contains('progress')) {
+                    d.createObjectStore('progress', { keyPath: 'seriesId' });
+                }
+            };
+            req.onsuccess = (e) => {
+                this.db = e.target.result;
+                resolve(this.db);
+            };
+            req.onerror = (e) => reject(e.target.error);
+        });
+    },
+
+    async toggleBookmark(series) {
+        await this.open();
+        const tx = this.db.transaction('bookmarks', 'readwrite');
+        const store = tx.objectStore('bookmarks');
+
+        const existing = await new Promise((resolve) => {
+            const req = store.get(series.slug);
+            req.onsuccess = () => resolve(req.result);
+        });
+
+        if (existing) {
+            store.delete(series.slug);
+            return false; // Removed
+        } else {
+            store.put({
+                slug: series.slug,
+                title: series.title,
+                author: series.author,
+                cover: series.cover,
+                addedAt: Date.now()
+            });
+            return true; // Added
+        }
+    },
+
+    async isBookmarked(slug) {
+        await this.open();
+        return new Promise((resolve) => {
+            const tx = this.db.transaction('bookmarks', 'readonly');
+            const req = tx.objectStore('bookmarks').get(slug);
+            req.onsuccess = () => resolve(!!req.result);
+        });
+    },
+
+    async addToHistory(chapter) {
+        await this.open();
+        const tx = this.db.transaction('history', 'readwrite');
+        const store = tx.objectStore('history');
+        store.put({
+            id: chapter.id,
+            title: chapter.title,
+            seriesTitle: chapter.seriesTitle,
+            seriesSlug: chapter.seriesSlug,
+            chapterNum: chapter.chapterNum,
+            readAt: Date.now()
+        });
+    }
+};
+
+window.LibDB = LibDB;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Init DB
+    try {
+        await LibDB.open();
+    } catch (e) {
+        console.error('Failed to open IndexedDB:', e);
+    }
+
+    // ========== Bookmark Button Logic ==========
+    const bookmarkBtn = document.getElementById('bookmark-btn');
+    if (bookmarkBtn) {
+        const slug = bookmarkBtn.dataset.slug;
+        const title = bookmarkBtn.dataset.title;
+        const author = bookmarkBtn.dataset.author;
+        const cover = bookmarkBtn.dataset.cover; // URL or empty
+
+        // Check initial state
+        const isBookmarked = await LibDB.isBookmarked(slug);
+        updateBookmarkIcon(bookmarkBtn, isBookmarked);
+
+        bookmarkBtn.addEventListener('click', async () => {
+            const added = await LibDB.toggleBookmark({ slug, title, author, cover });
+            updateBookmarkIcon(bookmarkBtn, added);
+        });
+    }
+
+    function updateBookmarkIcon(btn, active) {
+        if (active) {
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor"><path d="M200-120v-640q0-33 23.5-56.5T280-840h400q33 0 56.5 23.5T760-760v640L480-240 200-120Z"/></svg>`;
+            btn.classList.add('active');
+        } else {
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor"><path d="M200-120v-640q0-33 23.5-56.5T280-840h400q33 0 56.5 23.5T760-760v640L480-240 200-120Zm80-122 200-86 200 86v-518H280v518Zm0-518h400-400Z"/></svg>`;
+            btn.classList.remove('active');
+        }
+    }
+
     // ========== Theme Toggle ==========
     const themeToggle = document.getElementById('theme-toggle');
     const readerToggle = document.getElementById('reader-theme-toggle');
@@ -142,6 +263,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const panel = document.getElementById('panel-' + tab.dataset.tab);
                 if (panel) panel.classList.add('active');
             });
+        });
+    }
+
+    // ========== Start Reading Button (Switch to Chapters Tab) ==========
+    const startReadingBtn = document.getElementById('start-reading-btn');
+    if (startReadingBtn) {
+        startReadingBtn.addEventListener('click', () => {
+            const chaptersTab = document.querySelector('.series-tab[data-tab="chapters"]');
+            if (chaptersTab) {
+                chaptersTab.click();
+            }
         });
     }
 });
