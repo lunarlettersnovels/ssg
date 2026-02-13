@@ -1,0 +1,14 @@
+{
+    "name": "ssg-ui",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "rspack build",
+        "dev": "rspack serve"
+    },
+    "devDependencies": {
+        "@rspack/cli": "^0.5.0",
+        "@rspack/core": "^0.5.0",
+        "css-loader": "^6.8.1",
+        "style-loader": "^3.3.3"
+    }
+}

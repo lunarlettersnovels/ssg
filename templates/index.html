@@ -1,0 +1,19 @@
+{{define "title"}}Home - Lunar Letters{{end}}
+
+{{define "content"}}
+<div class="container">
+    <div class="novel-grid">
+        {{range .Series}}
+        <a href="/novel/{{.Slug}}" class="novel-card">
+            <div class="novel-cover" style="background: {{grad .ID}}">
+                {{abbr .Title}}
+            </div>
+            <div class="novel-info">
+                <div class="novel-title">{{.Title}}</div>
+                <div class="novel-author">{{if .Author.Valid}}{{.Author.String}}{{else}}Unknown{{end}}</div>
+            </div>
+        </a>
+        {{end}}
+    </div>
+</div>
+{{end}}

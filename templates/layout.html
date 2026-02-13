@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "title" .}}Lunar Letters{{end}}</title>
+    <meta name="description" content="{{block " description" .}}Read novels online at Lunar Letters{{end}}">
+    <link rel="stylesheet" href="/assets/main.css">
+    <script src="/assets/main.js" defer></script>
+    <script>
+        // Inline theme script to prevent flash
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <header class="site-header">
+            <div class="container header-content">
+                <a href="/" class="logo">
+                    <span style="color: var(--accent-color)">Lunar</span> Letters
+                </a>
+                <nav>
+                    <button id="theme-toggle" class="nav-link"
+                        style="background: none; border: none; color: inherit; cursor: pointer"
+                        aria-label="Toggle theme">
+                        <!-- Icon will be injected by JS -->
+                        <span class="icon-placeholder">◐</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            {{template "content" .}}
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; {{year}} Lunar Letters. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

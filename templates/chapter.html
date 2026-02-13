@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}} -
+        {{.Series.Title}}</title>
+    <link rel="stylesheet" href="/assets/main.css">
+    <script src="/assets/main.js" defer></script>
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <script>
+        // Mark chapter as read
+        try {
+            const seriesId = {{.Series.ID }
+        };
+        const chapterId = {{.Chapter.ID }};
+        let progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
+        if (!progress[seriesId]) progress[seriesId] = [];
+        if (!progress[seriesId].includes(chapterId)) {
+            progress[seriesId].push(chapterId);
+            localStorage.setItem('reading_progress', JSON.stringify(progress));
+        }
+        } catch (e) { }
+    </script>
+</head>
+
+<body class="isolated-reader">
+    <!-- Top Bar -->
+    <div class="reader-top-bar visible" id="top-bar">
+        <div class="bar-left">
+            <a href="/novel/{{.Series.Slug}}" class="icon-btn" title="Back to Novel">
+                ←
+            </a>
+            <span class="chapter-title-micro">
+                {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
+            </span>
+        </div>
+        <div class="bar-right">
+            <button id="reader-theme-toggle" class="icon-btn" title="Toggle Theme">
+                ◑
+            </button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="reader-content-wrapper" id="reader-wrapper">
+        <h1 class="chapter-title-main">
+            {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
+        </h1>
+
+        <div class="reader-text">
+            {{if .Chapter.Content.Valid}}
+            {{safeHTML (stripImages .Chapter.Content.String)}}
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="reader-bottom-bar visible" id="bottom-bar">
+        {{if .PrevChapter}}
+        <button class="nav-btn-floating"
+            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.PrevChapter.ID}}'">
+            ← Prev
+        </button>
+        {{else}}
+        <button class="nav-btn-floating" disabled>← Prev</button>
+        {{end}}
+
+        <div class="progress-indicator">
+            {{.CurrentIndex}} / {{.TotalChapters}}
+        </div>
+
+        {{if .NextChapter}}
+        <button class="nav-btn-floating"
+            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}'">
+            Next →
+        </button>
+        {{else}}
+        <button class="nav-btn-floating" disabled>Next →</button>
+        {{end}}
+    </div>
+</body>
+
+</html>

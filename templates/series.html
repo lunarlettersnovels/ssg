@@ -1,0 +1,53 @@
+{{define "title"}}{{.Series.Title}} - Lunar Letters{{end}}
+{{define "description"}}Read {{.Series.Title}} by {{.Series.Author.String}} on Lunar Letters.{{end}}
+
+{{define "content"}}
+<div class="container">
+    <div class="novel-header">
+        <div class="novel-header-cover" style="background: {{grad .Series.ID}}">
+            {{abbr .Series.Title}}
+        </div>
+        <div class="novel-header-info">
+            <h1 style="font-size: 2.5rem; margin-bottom: 10px">{{.Series.Title}}</h1>
+            <p style="font-size: 1.2rem; color: var(--secondary-text); margin-bottom: 20px">
+                By <span style="color: var(--text-color)">{{if
+                    .Series.Author.Valid}}{{.Series.Author.String}}{{else}}Unknown{{end}}</span>
+            </p>
+
+            {{if .Series.Genre.Valid}}
+            <div class="genres">
+                {{range split .Series.Genre.String ","}}
+                <span class="genre-tag">{{.}}</span>
+                {{end}}
+            </div>
+            {{end}}
+
+            <div style="margin-top: 20px">
+                <h3>Synopsis</h3>
+                <div style="line-height: 1.8; max-width: 800px">
+                    {{if .Series.Description.Valid}}
+                    {{safeHTML .Series.Description.String}}
+                    {{else}}
+                    No description available.
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 60px; margin-bottom: 10px">
+        <h3>Chapters ({{len .Chapters}})</h3>
+    </div>
+
+    <div class="chapter-list">
+        {{$slug := .Series.Slug}}
+        {{range .Chapters}}
+        <a href="/novel/{{$slug}}/chapter/{{.ID}}" class="chapter-item" data-id="{{.ID}}">
+            <div style="display: flex; alignItems: center; justifyContent: center; gap: 5px">
+                <span>Ch. {{.ChapterNumber}}</span>
+            </div>
+        </a>
+        {{end}}
+    </div>
+</div>
+{{end}}
