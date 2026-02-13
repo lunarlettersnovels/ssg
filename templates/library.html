@@ -1,0 +1,348 @@
+{{define "title"}}My Library - Lunar Letters{{end}}
+
+{{define "content"}}
+<div class="library-page">
+    <div class="library-header">
+        <h1 class="library-title">My Library</h1>
+    </div>
+
+    <!-- Library Tabs -->
+    <div class="lib-tabs" id="lib-tabs">
+        <button class="lib-tab active" data-tab="bookmarks">Bookmarks</button>
+        <button class="lib-tab" data-tab="history">History</button>
+    </div>
+
+    <!-- Bookmarks Panel -->
+    <div class="lib-panel active" id="lib-panel-bookmarks">
+        <div class="lib-empty" id="bookmarks-empty">
+            <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="currentColor">
+                <path d="M200-120v-640q0-33 23.5-56.5T280-840h400q33 0 56.5 23.5T760-760v640L480-240 200-120Z" />
+            </svg>
+            <p>No bookmarks yet</p>
+            <span>Bookmark novels from the homepage to see them here</span>
+        </div>
+        <div class="lib-list" id="bookmarks-list"></div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="lib-panel" id="lib-panel-history">
+        <div class="lib-empty" id="history-empty">
+            <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48" fill="currentColor">
+                <path
+                    d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z" />
+            </svg>
+            <p>No reading history</p>
+            <span>Chapters you read will appear here</span>
+        </div>
+        <div class="lib-list" id="history-list"></div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="lib-data-section">
+        <h3 class="lib-data-title">Data Management</h3>
+        <div class="lib-data-actions">
+            <button class="lib-data-btn" id="export-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"
+                    fill="currentColor">
+                    <path
+                        d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z" />
+                </svg>
+                Export Data
+            </button>
+            <button class="lib-data-btn" id="import-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"
+                    fill="currentColor">
+                    <path
+                        d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z" />
+                </svg>
+                Import Data
+            </button>
+            <button class="lib-data-btn danger" id="clear-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"
+                    fill="currentColor">
+                    <path
+                        d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T700-120H280Z" />
+                </svg>
+                Clear All Data
+            </button>
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+</div>
+
+<script>
+    (function () {
+        // ========== IndexedDB Setup ==========
+        const DB_NAME = 'LunarLettersDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains('bookmarks')) {
+                        const bStore = d.createObjectStore('bookmarks', { keyPath: 'slug' });
+                        bStore.createIndex('addedAt', 'addedAt', { unique: false });
+                    }
+                    if (!d.objectStoreNames.contains('history')) {
+                        const hStore = d.createObjectStore('history', { keyPath: 'id' });
+                        hStore.createIndex('readAt', 'readAt', { unique: false });
+                        hStore.createIndex('seriesSlug', 'seriesSlug', { unique: false });
+                    }
+                    if (!d.objectStoreNames.contains('progress')) {
+                        d.createObjectStore('progress', { keyPath: 'seriesId' });
+                    }
+                };
+                req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAll(storeName) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function clearStore(storeName) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.clear();
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function putAll(storeName, items) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                items.forEach(item => store.put(item));
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        // ========== Migrate localStorage to IndexedDB ==========
+        async function migrateLocalStorage() {
+            const raw = localStorage.getItem('reading_progress');
+            if (!raw) return;
+
+            try {
+                const progress = JSON.parse(raw);
+                const tx = db.transaction('progress', 'readwrite');
+                const store = tx.objectStore('progress');
+
+                for (const [seriesId, chapterIds] of Object.entries(progress)) {
+                    store.put({ seriesId: parseInt(seriesId), chapters: chapterIds });
+                }
+
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+
+                // Keep localStorage as fallback, don't delete
+            } catch (e) {
+                console.warn('Migration failed:', e);
+            }
+        }
+
+        // ========== Render Functions ==========
+        function renderBookmarks(bookmarks) {
+            const list = document.getElementById('bookmarks-list');
+            const empty = document.getElementById('bookmarks-empty');
+            if (!list || !empty) return;
+
+            if (bookmarks.length === 0) {
+                empty.style.display = '';
+                list.innerHTML = '';
+                return;
+            }
+
+            empty.style.display = 'none';
+            list.innerHTML = bookmarks
+                .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+                .map(bm => `
+                <a href="/novel/${bm.slug}" class="lib-row">
+                    <div class="lib-row-info">
+                        <div class="lib-row-title">${escHtml(bm.title)}</div>
+                        <div class="lib-row-meta">${bm.author ? escHtml(bm.author) : 'Unknown Author'}</div>
+                    </div>
+                    <button class="lib-row-action" data-action="remove-bookmark" data-slug="${bm.slug}" title="Remove">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                        </svg>
+                    </button>
+                </a>
+            `).join('');
+
+            // Remove bookmark handlers
+            list.querySelectorAll('[data-action="remove-bookmark"]').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const slug = btn.dataset.slug;
+                    const tx = db.transaction('bookmarks', 'readwrite');
+                    tx.objectStore('bookmarks').delete(slug);
+                    await new Promise(r => { tx.oncomplete = r; });
+                    const updated = await getAll('bookmarks');
+                    renderBookmarks(updated);
+                });
+            });
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById('history-list');
+            const empty = document.getElementById('history-empty');
+            if (!list || !empty) return;
+
+            if (history.length === 0) {
+                empty.style.display = '';
+                list.innerHTML = '';
+                return;
+            }
+
+            empty.style.display = 'none';
+            // Group by series
+            const grouped = {};
+            history.forEach(h => {
+                if (!grouped[h.seriesSlug]) {
+                    grouped[h.seriesSlug] = { title: h.seriesTitle, slug: h.seriesSlug, chapters: [] };
+                }
+                grouped[h.seriesSlug].chapters.push(h);
+            });
+
+            const groups = Object.values(grouped).sort((a, b) => {
+                const latestA = Math.max(...a.chapters.map(c => c.readAt || 0));
+                const latestB = Math.max(...b.chapters.map(c => c.readAt || 0));
+                return latestB - latestA;
+            });
+
+            list.innerHTML = groups.map(g => {
+                const latestCh = g.chapters.sort((a, b) => (b.readAt || 0) - (a.readAt || 0))[0];
+                const timeAgo = formatTimeAgo(latestCh.readAt);
+                return `
+                <a href="/novel/${g.slug}" class="lib-row">
+                    <div class="lib-row-info">
+                        <div class="lib-row-title">${escHtml(g.title)}</div>
+                        <div class="lib-row-meta">${g.chapters.length} chapter${g.chapters.length > 1 ? 's' : ''} read · ${timeAgo}</div>
+                    </div>
+                    <svg class="lib-row-chevron" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor">
+                        <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/>
+                    </svg>
+                </a>
+            `;
+            }).join('');
+        }
+
+        function escHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function formatTimeAgo(ts) {
+            if (!ts) return 'Unknown';
+            const diff = Date.now() - ts;
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hours = Math.floor(mins / 60);
+            if (hours < 24) return hours + 'h ago';
+            const days = Math.floor(hours / 24);
+            if (days < 30) return days + 'd ago';
+            return new Date(ts).toLocaleDateString();
+        }
+
+        // ========== Export / Import / Clear ==========
+        async function exportData() {
+            const bookmarks = await getAll('bookmarks');
+            const history = await getAll('history');
+            const progress = await getAll('progress');
+            const data = { version: 1, exportedAt: new Date().toISOString(), bookmarks, history, progress };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lunarletters-library-' + new Date().toISOString().slice(0, 10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function importData(file) {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                if (data.bookmarks) await putAll('bookmarks', data.bookmarks);
+                if (data.history) await putAll('history', data.history);
+                if (data.progress) {
+                    await putAll('progress', data.progress);
+                    // Sync back to localStorage for chapter pages
+                    const allProgress = await getAll('progress');
+                    const lsObj = {};
+                    allProgress.forEach(p => { lsObj[p.seriesId] = p.chapters; });
+                    localStorage.setItem('reading_progress', JSON.stringify(lsObj));
+                }
+                alert('Data imported successfully!');
+                location.reload();
+            } catch (e) {
+                alert('Failed to import: ' + e.message);
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('Are you sure? This will delete all your bookmarks, reading history, and progress.')) return;
+            await clearStore('bookmarks');
+            await clearStore('history');
+            await clearStore('progress');
+            localStorage.removeItem('reading_progress');
+            alert('All data cleared.');
+            location.reload();
+        }
+
+        // ========== Init ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            await openDB();
+            await migrateLocalStorage();
+
+            // Tab switching
+            document.querySelectorAll('.lib-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.lib-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.lib-panel').forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('lib-panel-' + tab.dataset.tab).classList.add('active');
+                });
+            });
+
+            // Load data
+            const bookmarks = await getAll('bookmarks');
+            renderBookmarks(bookmarks);
+
+            const history = await getAll('history');
+            renderHistory(history);
+
+            // Export
+            document.getElementById('export-btn').addEventListener('click', exportData);
+
+            // Import
+            const importFile = document.getElementById('import-file');
+            document.getElementById('import-btn').addEventListener('click', () => importFile.click());
+            importFile.addEventListener('change', (e) => {
+                if (e.target.files[0]) importData(e.target.files[0]);
+            });
+
+            // Clear
+            document.getElementById('clear-btn').addEventListener('click', clearAllData);
+        });
+    })();
+</script>
+{{end}}

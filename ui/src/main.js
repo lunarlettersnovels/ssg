@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 rows.forEach(row => {
                     if (filter === 'all') {
                         row.style.display = '';
+                    } else if (filter === 'ongoing') {
+                        const status = (row.dataset.status || '').toLowerCase();
+                        const isOngoing = status.includes('ongoing') || status.includes('publishing');
+                        row.style.display = isOngoing ? '' : 'none';
                     } else {
                         const status = (row.dataset.status || '').toLowerCase();
                         row.style.display = status.includes(filter) ? '' : 'none';

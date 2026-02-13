@@ -40,6 +40,11 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
+	// 2b. Generate Library page
+	if err := g.generateLibrary(); err != nil {
+		return err
+	}
+
 	// 3. Generate Series & Chapters (Concurrent)
 	if err := g.generateContent(); err != nil {
 		return err

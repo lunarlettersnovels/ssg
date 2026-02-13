@@ -36,6 +36,10 @@ func (g *Generator) generateHomepage() error {
 	return g.renderToFile("index.html", "index.html", data)
 }
 
+func (g *Generator) generateLibrary() error {
+	return g.renderToFile("library/index.html", "library.html", nil)
+}
+
 func (g *Generator) generateContent() error {
 	seriesList, err := g.repo.GetSeriesList()
 	if err != nil {

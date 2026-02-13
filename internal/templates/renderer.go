@@ -12,6 +12,7 @@ type Renderer struct {
 	home    *template.Template
 	series  *template.Template
 	chapter *template.Template
+	library *template.Template
 }
 
 var imgRe = regexp.MustCompile(`<img[^>]*>`)
@@ -71,7 +72,13 @@ func NewRenderer(templateDir string) (*Renderer, error) {
 		return nil, fmt.Errorf("failed to parse chapter template: %w", err)
 	}
 
-	return &Renderer{home: home, series: series, chapter: chapter}, nil
+	// 4. Library
+	library, err := parse("library.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse library template: %w", err)
+	}
+
+	return &Renderer{home: home, series: series, chapter: chapter, library: library}, nil
 }
 
 func (r *Renderer) Render(w io.Writer, name string, data interface{}) error {
@@ -82,6 +89,8 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}) error {
 		return r.series.ExecuteTemplate(w, "layout.html", data)
 	case "chapter.html":
 		return r.chapter.ExecuteTemplate(w, "chapter.html", data)
+	case "library.html":
+		return r.library.ExecuteTemplate(w, "layout.html", data)
 	default:
 		return fmt.Errorf("unknown template: %s", name)
 	}
