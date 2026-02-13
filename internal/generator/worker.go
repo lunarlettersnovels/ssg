@@ -12,10 +12,13 @@ import (
 )
 
 type Job struct {
-	Type     string // "series" or "chapter"
-	Series   db.Series
-	Chapter  *db.Chapter // Nil if series job
-	SeriesID uint64      // Used for chapter job
+	Type          string // "series" or "chapter"
+	Series        db.Series
+	Chapter       *db.Chapter // Metadata only initially
+	Prev          *db.Chapter
+	Next          *db.Chapter
+	CurrentIndex  int
+	TotalChapters int
 }
 
 func (g *Generator) generateHomepage() error {
@@ -41,13 +44,14 @@ func (g *Generator) generateContent() error {
 	}
 
 	// Create job channel
-	jobs := make(chan Job, len(seriesList)*100) // Buffer estimate
+	// Buffer needs to be large enough or we blocking-feed it
+	jobs := make(chan Job, 1000)
 	var wg sync.WaitGroup
 
 	// Start workers
 	workerCount := g.cfg.SSG.Concurrency
 	if workerCount <= 0 {
-		workerCount = 10
+		workerCount = 100
 	}
 
 	// Stats
@@ -83,84 +87,74 @@ func (g *Generator) generateContent() error {
 		}()
 	}
 
-	// Enqueue Series Jobs
-	// We need to fetch chapters for each series to enqueue chapter jobs too.
-	// Optimize: Generate series page, AND enqueue chapter jobs.
+	// Dispatcher Goroutine
+	// We run this in a goroutine so we can close the channel when done
+	// and not block the main thread from waiting on WG if we were using it differently,
+	// but here we just block main thread on feeding, then wait.
+	// Actually, keeping the feed in main thread is fine as long as workers consume.
 
+	// Iterate Series
 	for _, s := range seriesList {
-		// Enqueue Series Page Generation
+		// 1. Series Page Job
 		jobs <- Job{Type: "series", Series: s}
 
-		// Fetch chapters for this series
-		// Note: This might be heavy to do in main thread.
-		// Better: Worker does FetchChapters and enqueues chapter jobs?
-		// Or: We do it here. Let's do it here for simplicity of flow,
-		// but for 10k pages + concurrency as requested, let's distribute.
+		// 2. Fetch Chapters (Metadata)
+		chapters, err := g.repo.GetChaptersBySeriesID(s.ID)
+		if err != nil {
+			fmt.Printf("Failed to get chapters for series %s: %v\n", s.Slug, err)
+			continue
+		}
+
+		// 3. Dispatch Chapter Jobs
+		total := len(chapters)
+		for i := range chapters {
+			// We need pointers for Prev/Next
+			// Be careful with loop variable scope, but we access by index 'i'
+			var prev, next *db.Chapter
+			if i > 0 {
+				prev = &chapters[i-1]
+			}
+			if i < total-1 {
+				next = &chapters[i+1]
+			}
+
+			// Copy chapter to avoid pointer to loop var issues if we used &ch
+			current := chapters[i]
+
+			jobs <- Job{
+				Type:          "chapter",
+				Series:        s,
+				Chapter:       &current,
+				Prev:          prev,
+				Next:          next,
+				CurrentIndex:  i + 1,
+				TotalChapters: total,
+			}
+		}
 	}
-
-	// Wait? No, we need to close channel.
-	// Actually, if we want workers to discover chapters, we need a separate dispatch mechanism or waitgroup usage pattern.
-
-	// Simple approach:
-	// Just feed Series jobs.
-	// The Series Worker will:
-	// 1. Generate Series Page
-	// 2. Fetch Chapters
-	// 3. Generate Chapter Pages (Here directly or enqueue?)
-	// Direct generation in worker seems fine if we have enough workers.
-	// But "Generate tens of thousands of pages in an instant" implies high concurrency.
-	// Let's make "SeriesJob" also spawn "ChapterJobs" if we want granularity,
-	// but keeping it simple: A worker handles a whole series (Series Page + All Chapters).
-	// This reduces DB contention on "GetChapters" since we do it once per series.
 
 	close(jobs)
 	wg.Wait()
 	done <- true
 
-	fmt.Printf("Generated %d files.\n", filesGenerated)
+	fmt.Printf("\nGenerated %d files.\n", filesGenerated)
 	return nil
 }
 
 func (g *Generator) processJob(job Job) error {
 	if job.Type == "series" {
-		// 1. Generate Series Page
-		if err := g.renderSeriesPage(job.Series); err != nil {
+		return g.renderSeriesPage(job.Series)
+	} else if job.Type == "chapter" {
+		// Fetch content just-in-time
+		fullChapter, err := g.repo.GetChapterContent(job.Chapter.ID)
+		if err != nil {
 			return err
 		}
-
-		// 2. Fetch Chapters
-		chapters, err := g.repo.GetChaptersBySeriesID(job.Series.ID)
-		if err != nil {
-			return fmt.Errorf("failed to get chapters for series %s: %w", job.Series.Slug, err)
+		if fullChapter == nil {
+			return fmt.Errorf("chapter content not found for id %d", job.Chapter.ID)
 		}
 
-		// 3. Generate Chapter Pages
-		// Loop through chapters and generate.
-		for i, ch := range chapters {
-			// Fetch full content (Repo method GetChapterContent)
-			// Optimization: GetChaptersBySeriesID only got metadata.
-			// We need content now.
-			fullChapter, err := g.repo.GetChapterContent(ch.ID)
-			if err != nil {
-				return err
-			}
-			if fullChapter == nil {
-				continue
-			}
-
-			// Prev/Next logic
-			var prev, next *db.Chapter
-			if i > 0 {
-				prev = &chapters[i-1]
-			}
-			if i < len(chapters)-1 {
-				next = &chapters[i+1]
-			}
-
-			if err := g.renderChapterPage(job.Series, fullChapter, prev, next, i+1, len(chapters)); err != nil {
-				return err
-			}
-		}
+		return g.renderChapterPage(job.Series, fullChapter, job.Prev, job.Next, job.CurrentIndex, job.TotalChapters)
 	}
 	return nil
 }

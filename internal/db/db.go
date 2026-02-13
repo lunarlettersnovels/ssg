@@ -21,8 +21,8 @@ func Connect(dsn string) (*sql.DB, error) {
 
 	// Set connection pool settings
 	db.SetMaxOpenConns(100)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxIdleConns(100) // Match OpenConns to avoid churn
+	db.SetConnMaxLifetime(1 * time.Hour)
 
 	return db, nil
 }

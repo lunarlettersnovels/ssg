@@ -46,8 +46,6 @@ func (g *Generator) Generate() error {
 	}
 
 	// 4. Generate Sitemap
-	// Retrieve series list again or pass it? generateContent fetches it.
-	// Let's refactor slightly or just fetch again (cheap).
 	seriesList, err := g.repo.GetSeriesList()
 	if err == nil {
 		g.generateSitemap(seriesList)
@@ -67,7 +65,6 @@ func (g *Generator) prepareOutput() error {
 	}
 
 	// Copy Assets
-	// Validating that assets exist
 	assetsSrc := filepath.Join("public", "assets")
 	assetsDest := filepath.Join(g.cfg.SSG.OutputDir, "assets")
 
@@ -79,9 +76,8 @@ func (g *Generator) prepareOutput() error {
 	// Copy files
 	entries, err := os.ReadDir(assetsSrc)
 	if err != nil {
-		// It's possible assets aren't built yet, warn but don't fail hard?
-		// actually fail hard so user knows.
-		return fmt.Errorf("failed to read assets dir (did you build ui?): %w", err)
+		// Warn instead of fail? No, fail.
+		return fmt.Errorf("failed to read assets dir: %w", err)
 	}
 
 	for _, entry := range entries {
