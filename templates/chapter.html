@@ -17,23 +17,9 @@
             }
         })();
     </script>
-    <script>
-        // Mark chapter as read
-        try {
-            const seriesId = {{.Series.ID }
-        };
-        const chapterId = {{.Chapter.ID }};
-        let progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
-        if (!progress[seriesId]) progress[seriesId] = [];
-        if (!progress[seriesId].includes(chapterId)) {
-            progress[seriesId].push(chapterId);
-            localStorage.setItem('reading_progress', JSON.stringify(progress));
-        }
-        } catch (e) { }
-    </script>
 </head>
 
-<body class="isolated-reader">
+<body class="isolated-reader" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}">
     <!-- Top Bar -->
     <div class="reader-top-bar visible" id="top-bar">
         <div class="bar-left">
@@ -88,6 +74,28 @@
         <button class="nav-btn-floating" disabled>Next →</button>
         {{end}}
     </div>
+
+    <script>
+        // Move reading progress logic here, reading from data attributes to avoid template issues in script tags
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const body = document.body;
+                const seriesId = parseInt(body.getAttribute('data-series-id'));
+                const chapterId = parseInt(body.getAttribute('data-chapter-id'));
+
+                if (seriesId && chapterId) {
+                    let progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
+                    if (!progress[seriesId]) progress[seriesId] = [];
+                    if (!progress[seriesId].includes(chapterId)) {
+                        progress[seriesId].push(chapterId);
+                        localStorage.setItem('reading_progress', JSON.stringify(progress));
+                    }
+                }
+            } catch (e) {
+                console.error("Error saving progress", e);
+            }
+        });
+    </script>
 </body>
 
 </html>
