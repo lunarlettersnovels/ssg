@@ -190,9 +190,36 @@ h3 {
     transition: border-color 0.2s, background-color 0.2s;
 }
 
+.chapter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .chapter-item:hover {
     border-color: var(--accent-color);
     background-color: rgba(0, 0, 0, 0.02);
+}
+
+.read-indicator {
+    opacity: 0;
+    color: #27ae60;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.2s;
+}
+
+.chapter-item.read .read-indicator {
+    opacity: 1;
+}
+
+.chapter-item.read {
+    color: var(--secondary-text);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .chapter-item.read {
+    background-color: rgba(255, 255, 255, 0.02);
 }
 
 /* Reader */

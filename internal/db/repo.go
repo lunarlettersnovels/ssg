@@ -65,7 +65,8 @@ func (r *Repository) GetAllChaptersGrouped() (map[uint64][]Chapter, error) {
 }
 
 func (r *Repository) GetSeriesList() ([]Series, error) {
-	query := `SELECT id, slug, title, thumbnail_url, author, description, status, genre, release_year, source_id, created_at, updated_at FROM series ORDER BY updated_at DESC`
+	query := `SELECT id, slug, title, thumbnail_url, author, description, status, genre, release_year, source_id, created_at, updated_at FROM series ORDER BY title ASC`
+
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err

@@ -2,52 +2,76 @@
 {{define "description"}}Read {{.Series.Title}} by {{.Series.Author.String}} on Lunar Letters.{{end}}
 
 {{define "content"}}
-<div class="container">
-    <div class="novel-header">
-        <div class="novel-header-cover" style="background: {{grad .Series.ID}}">
-            {{abbr .Series.Title}}
-        </div>
-        <div class="novel-header-info">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px">{{.Series.Title}}</h1>
-            <p style="font-size: 1.2rem; color: var(--secondary-text); margin-bottom: 20px">
-                By <span style="color: var(--text-color)">{{if
-                    .Series.Author.Valid}}{{.Series.Author.String}}{{else}}Unknown{{end}}</span>
-            </p>
-
-            {{if .Series.Genre.Valid}}
-            <div class="genres">
-                {{range split .Series.Genre.String ","}}
-                <span class="genre-tag">{{.}}</span>
-                {{end}}
+<div class="series-hero-bg">
+    <div class="series-hero-content container">
+        <div class="novel-header">
+            <div class="novel-header-cover" style="background: {{grad .Series.ID}}">
+                <span class="novel-cover-text">{{abbr .Series.Title}}</span>
             </div>
-            {{end}}
+            <div class="novel-header-info">
+                <h1 class="novel-header-title">{{.Series.Title}}</h1>
+                <p class="novel-header-author">
+                    By <span>{{if .Series.Author.Valid}}{{.Series.Author.String}}{{else}}Unknown{{end}}</span>
+                </p>
 
-            <div style="margin-top: 20px">
-                <h3>Synopsis</h3>
-                <div style="line-height: 1.8; max-width: 800px">
-                    {{if .Series.Description.Valid}}
-                    {{safeHTML .Series.Description.String}}
-                    {{else}}
-                    No description available.
+                {{if .Series.Genre.Valid}}
+                <div class="genres">
+                    {{range split .Series.Genre.String ","}}
+                    <span class="genre-tag">{{.}}</span>
                     {{end}}
+                </div>
+                {{end}}
+
+                <div class="novel-synopsis">
+                    <h3>Synopsis</h3>
+                    <div class="synopsis-content">
+                        {{if .Series.Description.Valid}}
+                        {{safeHTML .Series.Description.String}}
+                        {{else}}
+                        No description available.
+                        {{end}}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div style="margin-top: 60px; margin-bottom: 10px">
-        <h3>Chapters ({{len .Chapters}})</h3>
+<div class="container content-section">
+    <div class="chapter-list-header">
+        <h3>Chapters <span class="chapter-count">({{len .Chapters}})</span></h3>
     </div>
 
     <div class="chapter-list">
         {{$slug := .Series.Slug}}
+        {{$seriesId := .Series.ID}}
         {{range .Chapters}}
-        <a href="/novel/{{$slug}}/chapter/{{.ID}}.html" class="chapter-item" data-id="{{.ID}}">
-            <div style="display: flex; alignItems: center; justifyContent: center; gap: 5px">
-                <span>Ch. {{.ChapterNumber}}</span>
-            </div>
+        <a href="/novel/{{$slug}}/chapter/{{.ID}}.html" class="chapter-item" data-id="{{.ID}}"
+            data-series="{{$seriesId}}">
+            <span class="chapter-number">Ch. {{.ChapterNumber}}</span>
+            <span class="read-indicator" title="Read">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px"
+                    fill="currentColor">
+                    <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
+                </svg>
+            </span>
         </a>
         {{end}}
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const seriesId = {{.Series.ID}};
+        const progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
+        const readChapters = progress[seriesId] || [];
+
+        document.querySelectorAll('.chapter-item').forEach(item => {
+            const chapterId = parseInt(item.getAttribute('data-id'));
+            if (readChapters.includes(chapterId)) {
+                item.classList.add('read');
+            }
+        });
+    });
+</script>
 {{end}}
