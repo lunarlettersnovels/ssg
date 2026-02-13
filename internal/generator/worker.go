@@ -37,14 +37,12 @@ func (g *Generator) generateHomepage() error {
 }
 
 func (g *Generator) generateContent() error {
-	// 1. Fetch all series
 	seriesList, err := g.repo.GetSeriesList()
 	if err != nil {
 		return err
 	}
 
-	// 2. PRE-FETCH ALL CHAPTERS (The Performance Fix)
-	fmt.Println("Fetching all chapters from DB (this may take a moment)...")
+	fmt.Println("Fetching all chapters from DB...")
 	allChaptersMap, err := g.repo.GetAllChaptersGrouped()
 	if err != nil {
 		return fmt.Errorf("failed to bulk fetch chapters: %w", err)
@@ -61,10 +59,8 @@ func (g *Generator) generateContent() error {
 		workerCount = 100
 	}
 
-	// Stats
 	var filesGenerated uint64
 
-	// Progress Monitor
 	done := make(chan bool)
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
@@ -101,10 +97,8 @@ func (g *Generator) generateContent() error {
 			chapters = []db.Chapter{}
 		}
 
-		// 1. Series Page Job
 		jobs <- Job{Type: "series", Series: s, SeriesChapters: chapters}
 
-		// 2. Chapter Jobs
 		total := len(chapters)
 		for i := range chapters {
 			var prev, next *db.Chapter
@@ -176,6 +170,6 @@ func (g *Generator) renderChapterPage(series db.Series, chapter *db.Chapter, pre
 		TotalChapters: total,
 	}
 
-	path := filepath.Join("novel", series.Slug, "chapter", fmt.Sprintf("%d", chapter.ID), "index.html")
+	path := filepath.Join("novel", series.Slug, "chapter", fmt.Sprintf("%d.html", chapter.ID))
 	return g.renderToFile(path, "chapter.html", data)
 }

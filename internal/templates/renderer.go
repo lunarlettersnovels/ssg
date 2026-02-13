@@ -14,6 +14,8 @@ type Renderer struct {
 	chapter *template.Template
 }
 
+var imgRe = regexp.MustCompile(`<img[^>]*>`)
+
 func NewRenderer(templateDir string) (*Renderer, error) {
 	funcs := template.FuncMap{
 		"safeHTML": func(s string) template.HTML {
@@ -32,17 +34,16 @@ func NewRenderer(templateDir string) (*Renderer, error) {
 		},
 		"split": strings.Split,
 		"stripImages": func(s string) string {
-			re := regexp.MustCompile(`<img[^>]*>`)
-			return re.ReplaceAllString(s, "")
+			// Use the pre-compiled regex
+			return imgRe.ReplaceAllString(s, "")
 		},
 		"year": func() int {
-			return 2026 // Hardcoded as per prompt context or use time.Now()
+			return 2026
 		},
 	}
 
 	// Helper to parse base layout + specific page
 	parse := func(page string) (*template.Template, error) {
-		// New("layout.html") matters if layout.html is the base
 		t := template.New("layout.html").Funcs(funcs)
 		return t.ParseFiles(
 			templateDir+"/layout.html",

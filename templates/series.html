@@ -42,7 +42,7 @@
     <div class="chapter-list">
         {{$slug := .Series.Slug}}
         {{range .Chapters}}
-        <a href="/novel/{{$slug}}/chapter/{{.ID}}" class="chapter-item" data-id="{{.ID}}">
+        <a href="/novel/{{$slug}}/chapter/{{.ID}}.html" class="chapter-item" data-id="{{.ID}}">
             <div style="display: flex; alignItems: center; justifyContent: center; gap: 5px">
                 <span>Ch. {{.ChapterNumber}}</span>
             </div>

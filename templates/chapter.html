@@ -20,7 +20,6 @@
 </head>
 
 <body class="isolated-reader" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}">
-    <!-- Top Bar -->
     <div class="reader-top-bar visible" id="top-bar">
         <div class="bar-left">
             <a href="/novel/{{.Series.Slug}}" class="icon-btn" title="Back to Novel">
@@ -37,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Content -->
     <div class="reader-content-wrapper" id="reader-wrapper">
         <h1 class="chapter-title-main">
             {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
@@ -50,11 +48,10 @@
         </div>
     </div>
 
-    <!-- Bottom Nav -->
     <div class="reader-bottom-bar visible" id="bottom-bar">
         {{if .PrevChapter}}
         <button class="nav-btn-floating"
-            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.PrevChapter.ID}}'">
+            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.PrevChapter.ID}}.html'">
             ← Prev
         </button>
         {{else}}
@@ -67,7 +64,7 @@
 
         {{if .NextChapter}}
         <button class="nav-btn-floating"
-            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}'">
+            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}.html'">
             Next →
         </button>
         {{else}}
@@ -76,7 +73,6 @@
     </div>
 
     <script>
-        // Move reading progress logic here, reading from data attributes to avoid template issues in script tags
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const body = document.body;
