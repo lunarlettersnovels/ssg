@@ -1,16 +1,45 @@
-{{define "title"}}Home - Lunar Letters{{end}}
+{{define "title"}}Library - Lunar Letters{{end}}
 
 {{define "content"}}
-<div class="container">
-    <div class="novel-grid">
+<div class="library-page">
+    <!-- Page Title -->
+    <div class="library-header">
+        <h1 class="library-title">Library</h1>
+        <span class="library-count">{{len .Series}} novels</span>
+    </div>
+
+    <!-- Status Filter Pills -->
+    <div class="filter-pills" id="filter-pills">
+        <button class="pill active" data-filter="all">All</button>
+        <button class="pill" data-filter="ongoing">Ongoing</button>
+        <button class="pill" data-filter="completed">Completed</button>
+    </div>
+
+    <!-- Novel List (Horizontal Cards) -->
+    <div class="novel-list" id="novel-list">
         {{range .Series}}
-        <a href="/novel/{{.Slug}}" class="novel-card">
-            <div class="novel-cover" style="background: {{grad .ID}}">
-                {{abbr .Title}}
+        <a href="/novel/{{.Slug}}" class="novel-row"
+            data-status="{{if .Status.Valid}}{{.Status.String}}{{else}}ongoing{{end}}">
+            <div class="novel-row-cover" style="background: {{grad .ID}}">
+                <span class="novel-row-abbr">{{abbr .Title}}</span>
             </div>
-            <div class="novel-info">
-                <div class="novel-title">{{.Title}}</div>
-                <div class="novel-author">{{if .Author.Valid}}{{.Author.String}}{{else}}Unknown{{end}}</div>
+            <div class="novel-row-info">
+                <div class="novel-row-title">{{.Title}}</div>
+                <div class="novel-row-author">{{if .Author.Valid}}{{.Author.String}}{{else}}Unknown Author{{end}}</div>
+                <div class="novel-row-meta">
+                    {{if .Genre.Valid}}
+                    <span class="novel-row-genre">{{.Genre.String}}</span>
+                    {{end}}
+                    {{if .Status.Valid}}
+                    <span class="novel-row-status status-{{.Status.String}}">{{.Status.String}}</span>
+                    {{end}}
+                </div>
+            </div>
+            <div class="novel-row-chevron">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"
+                    fill="currentColor">
+                    <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
+                </svg>
             </div>
         </a>
         {{end}}

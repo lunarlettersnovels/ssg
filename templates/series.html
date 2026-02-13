@@ -2,76 +2,138 @@
 {{define "description"}}Read {{.Series.Title}} by {{.Series.Author.String}} on Lunar Letters.{{end}}
 
 {{define "content"}}
-<div class="series-hero-bg">
-    <div class="series-hero-content container">
-        <div class="novel-header">
-            <div class="novel-header-cover" style="background: {{grad .Series.ID}}">
-                <span class="novel-cover-text">{{abbr .Series.Title}}</span>
-            </div>
-            <div class="novel-header-info">
-                <h1 class="novel-header-title">{{.Series.Title}}</h1>
-                <p class="novel-header-author">
-                    By <span>{{if .Series.Author.Valid}}{{.Series.Author.String}}{{else}}Unknown{{end}}</span>
-                </p>
+<!-- Full-bleed Cover Banner -->
+<div class="series-banner" style="background: {{grad .Series.ID}}">
+    <div class="series-banner-overlay"></div>
+    <div class="series-banner-content">
+        <span class="series-banner-abbr">{{abbr .Series.Title}}</span>
+    </div>
+</div>
 
-                {{if .Series.Genre.Valid}}
-                <div class="genres">
-                    {{range split .Series.Genre.String ","}}
-                    <span class="genre-tag">{{.}}</span>
-                    {{end}}
-                </div>
-                {{end}}
+<!-- Floating Info Card -->
+<div class="series-info-card">
+    <h1 class="series-title">{{.Series.Title}}</h1>
+    <p class="series-author">
+        {{if .Series.Author.Valid}}{{.Series.Author.String}}{{else}}Unknown Author{{end}}
+    </p>
 
-                <div class="novel-synopsis">
-                    <h3>Synopsis</h3>
-                    <div class="synopsis-content">
-                        {{if .Series.Description.Valid}}
-                        {{safeHTML .Series.Description.String}}
-                        {{else}}
-                        No description available.
-                        {{end}}
-                    </div>
-                </div>
-            </div>
+    {{if .Series.Genre.Valid}}
+    <div class="series-tags">
+        {{range split .Series.Genre.String ","}}
+        <span class="tag">{{.}}</span>
+        {{end}}
+    </div>
+    {{end}}
+
+    <div class="series-stats">
+        <div class="stat">
+            <span class="stat-value">{{len .Chapters}}</span>
+            <span class="stat-label">Chapters</span>
+        </div>
+        {{if .Series.Status.Valid}}
+        <div class="stat">
+            <span class="stat-value status-dot status-{{.Series.Status.String}}">{{.Series.Status.String}}</span>
+            <span class="stat-label">Status</span>
+        </div>
+        {{end}}
+        {{if .Series.ReleaseYear.Valid}}
+        <div class="stat">
+            <span class="stat-value">{{.Series.ReleaseYear.Int32}}</span>
+            <span class="stat-label">Year</span>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- CTA Button -->
+    <a href="#chapters" class="cta-btn" id="start-reading-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+            <path
+                d="M240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v640q0 33-23.5 56.5T720-80H240Zm0-80h480v-640h-60v280l-100-60-100 60v-280H240v640Z" />
+        </svg>
+        Start Reading
+    </a>
+</div>
+
+<!-- Tabs: About / Chapters -->
+<div class="series-tabs">
+    <button class="series-tab active" data-tab="about">About</button>
+    <button class="series-tab" data-tab="chapters">Chapters</button>
+</div>
+
+<!-- About Panel -->
+<div class="tab-panel active" id="panel-about">
+    <div class="synopsis-section">
+        <h3 class="section-label">Synopsis</h3>
+        <div class="synopsis-text">
+            {{if .Series.Description.Valid}}
+            {{safeHTML .Series.Description.String}}
+            {{else}}
+            <p>No description available for this novel.</p>
+            {{end}}
         </div>
     </div>
 </div>
 
-<div class="container content-section">
-    <div class="chapter-list-header">
-        <h3>Chapters <span class="chapter-count">({{len .Chapters}})</span></h3>
-    </div>
-
-    <div class="chapter-list">
-        {{$slug := .Series.Slug}}
-        {{$seriesId := .Series.ID}}
-        {{range .Chapters}}
-        <a href="/novel/{{$slug}}/chapter/{{.ID}}.html" class="chapter-item" data-id="{{.ID}}"
-            data-series="{{$seriesId}}">
-            <span class="chapter-number">Ch. {{.ChapterNumber}}</span>
-            <span class="read-indicator" title="Read">
-                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px"
-                    fill="currentColor">
-                    <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
-                </svg>
-            </span>
-        </a>
-        {{end}}
+<!-- Chapters Panel -->
+<div class="tab-panel" id="panel-chapters">
+    <div class="chapters-section" id="chapters" data-series-id="{{.Series.ID}}">
+        <div class="chapters-header">
+            <span class="chapters-count">{{len .Chapters}} chapters</span>
+        </div>
+        <div class="chapters-list">
+            {{$slug := .Series.Slug}}
+            {{$seriesId := .Series.ID}}
+            {{range .Chapters}}
+            <a href="/novel/{{$slug}}/chapter/{{.ID}}.html" class="ch-row" data-id="{{.ID}}"
+                data-series="{{$seriesId}}">
+                <div class="ch-row-left">
+                    <span class="ch-num">#{{.ChapterNumber}}</span>
+                    <span class="ch-title">{{if .Title.Valid}}{{.Title.String}}{{else}}Chapter
+                        {{.ChapterNumber}}{{end}}</span>
+                </div>
+                <div class="ch-row-right">
+                    <span class="ch-read-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16"
+                            fill="currentColor">
+                            <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
+                        </svg>
+                    </span>
+                    <svg class="ch-chevron" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960"
+                        width="18" fill="currentColor">
+                        <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
+                    </svg>
+                </div>
+            </a>
+            {{end}}
+        </div>
     </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const seriesId = {{.Series.ID}};
+        // Tab switching is handled by main.js
+
+        // Mark read chapters
+        const chaptersSection = document.getElementById('chapters');
+        if (!chaptersSection) return;
+        const seriesId = parseInt(chaptersSection.getAttribute('data-series-id'));
         const progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
         const readChapters = progress[seriesId] || [];
 
-        document.querySelectorAll('.chapter-item').forEach(item => {
+        document.querySelectorAll('.ch-row').forEach(item => {
             const chapterId = parseInt(item.getAttribute('data-id'));
             if (readChapters.includes(chapterId)) {
                 item.classList.add('read');
             }
         });
+
+        // Update CTA button
+        if (readChapters.length > 0) {
+            const btn = document.getElementById('start-reading-btn');
+            if (btn) {
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v640q0 33-23.5 56.5T720-80H240Zm0-80h480v-640h-60v280l-100-60-100 60v-280H240v640Z"/></svg> Continue Reading';
+            }
+        }
     });
 </script>
 {{end}}

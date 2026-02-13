@@ -3,13 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>{{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}} -
         {{.Series.Title}}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/assets/main.css">
     <script src="/assets/main.js" defer></script>
@@ -24,30 +25,33 @@
     </script>
 </head>
 
-<body class="isolated-reader" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}">
+<body class="reader-body" data-series-id="{{.Series.ID}}" data-chapter-id="{{.Chapter.ID}}">
+    <!-- Reading Progress Bar -->
+    <div class="reading-progress-bar" id="reading-progress"></div>
+
+    <!-- Top Bar -->
     <div class="reader-top-bar visible" id="top-bar">
         <div class="bar-left">
-            <a href="/novel/{{.Series.Slug}}" class="icon-btn" title="Back to Novel">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+            <a href="/novel/{{.Series.Slug}}" class="back-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"
                     fill="currentColor">
                     <path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z" />
                 </svg>
             </a>
-            <span class="chapter-title-micro">
-                {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
-            </span>
+            <div class="bar-title-group">
+                <span class="bar-series-title">{{.Series.Title}}</span>
+                <span class="bar-chapter-num">Ch. {{.Chapter.ChapterNumber}} of {{.TotalChapters}}</span>
+            </div>
         </div>
         <div class="bar-right">
-            <button id="reader-theme-toggle" class="icon-btn" title="Toggle Theme">
-                <!-- Sun Icon -->
-                <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                    width="24px" fill="currentColor">
+            <button id="reader-theme-toggle" class="app-icon-btn" title="Toggle Theme">
+                <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960"
+                    width="22" fill="currentColor">
                     <path
                         d="M440-760v-160h80v160h-80Zm266 110-55-55 112-115 56 57-113 113Zm54 210v-80h160v80H760ZM440-40v-160h80v160h-80ZM254-652 140-763l56-56 113 113-55 54Zm-94 292v-80h160v80H160Zm114 268 54-55 115 112-57 57-112-114ZM480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280Z" />
                 </svg>
-                <!-- Moon Icon -->
-                <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-                    width="24px" fill="currentColor">
+                <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960"
+                    width="22" fill="currentColor">
                     <path
                         d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Z" />
                 </svg>
@@ -55,75 +59,99 @@
         </div>
     </div>
 
-    <div class="reader-content-wrapper" id="reader-wrapper">
-        <h1 class="chapter-title-main">
-            {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
-        </h1>
+    <!-- Reader Content -->
+    <article class="reader-article" id="reader-wrapper">
+        <header class="chapter-header">
+            <span class="chapter-label">Chapter {{.Chapter.ChapterNumber}}</span>
+            <h1 class="chapter-heading">
+                {{if .Chapter.Title.Valid}}{{.Chapter.Title.String}}{{else}}Chapter {{.Chapter.ChapterNumber}}{{end}}
+            </h1>
+        </header>
 
         <div class="reader-text">
             {{if .Chapter.Content.Valid}}
             {{safeHTML (stripImages .Chapter.Content.String)}}
             {{end}}
         </div>
-    </div>
 
+        <!-- Chapter End Card -->
+        <div class="chapter-end-card">
+            <div class="end-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" height="48" viewBox="0 -960 960 960" width="48"
+                    fill="currentColor">
+                    <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
+                </svg>
+            </div>
+            <h3 class="end-card-title">Chapter Complete</h3>
+            <p class="end-card-progress">{{.CurrentIndex}} of {{.TotalChapters}} chapters</p>
+            <div class="end-card-actions">
+                {{if .NextChapter}}
+                <a href="/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}.html" class="end-card-btn primary">
+                    Next Chapter
+                    <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20"
+                        fill="currentColor">
+                        <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
+                    </svg>
+                </a>
+                {{end}}
+                <a href="/novel/{{.Series.Slug}}" class="end-card-btn secondary">
+                    Back to Novel
+                </a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Bottom Nav -->
     <div class="reader-bottom-bar visible" id="bottom-bar">
         {{if .PrevChapter}}
-        <button class="nav-btn-floating"
-            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.PrevChapter.ID}}.html'"
-            title="Previous Chapter">
-            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                fill="currentColor">
+        <a href="/novel/{{.Series.Slug}}/chapter/{{.PrevChapter.ID}}.html" class="reader-nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
                 <path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z" />
             </svg>
             <span>Prev</span>
-        </button>
+        </a>
         {{else}}
-        <button class="nav-btn-floating" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                fill="currentColor">
+        <span class="reader-nav-btn disabled">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
                 <path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z" />
             </svg>
             <span>Prev</span>
-        </button>
+        </span>
         {{end}}
 
-        <div class="progress-indicator">
-            {{.CurrentIndex}} / {{.TotalChapters}}
+        <div class="reader-progress-pill">
+            <span>{{.CurrentIndex}}</span>
+            <span class="progress-divider">/</span>
+            <span>{{.TotalChapters}}</span>
         </div>
 
         {{if .NextChapter}}
-        <button class="nav-btn-floating"
-            onclick="window.location.href='/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}.html'"
-            title="Next Chapter">
+        <a href="/novel/{{.Series.Slug}}/chapter/{{.NextChapter.ID}}.html" class="reader-nav-btn">
             <span>Next</span>
-            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
                 <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
             </svg>
-        </button>
+        </a>
         {{else}}
-        <button class="nav-btn-floating" disabled>
+        <span class="reader-nav-btn disabled">
             <span>Next</span>
-            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
                 <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
             </svg>
-        </button>
+        </span>
         {{end}}
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Save reading progress
             try {
                 const body = document.body;
                 const seriesId = parseInt(body.getAttribute('data-series-id'));
                 const chapterId = parseInt(body.getAttribute('data-chapter-id'));
-
                 if (seriesId && chapterId) {
                     let progress = JSON.parse(localStorage.getItem('reading_progress') || '{}');
                     if (!progress[seriesId]) progress[seriesId] = [];
-                    // Ensure we are saving as numbers
                     if (!progress[seriesId].includes(chapterId)) {
                         progress[seriesId].push(chapterId);
                         localStorage.setItem('reading_progress', JSON.stringify(progress));
@@ -131,6 +159,16 @@
                 }
             } catch (e) {
                 console.error("Error saving progress", e);
+            }
+
+            // Reading progress bar
+            const progressBar = document.getElementById('reading-progress');
+            if (progressBar) {
+                window.addEventListener('scroll', () => {
+                    const winHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    const scrolled = (window.scrollY / winHeight) * 100;
+                    progressBar.style.width = Math.min(scrolled, 100) + '%';
+                }, { passive: true });
             }
         });
     </script>
