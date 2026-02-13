@@ -9,7 +9,8 @@ import (
 )
 
 type Renderer struct {
-	layout  *template.Template
+	home    *template.Template
+	series  *template.Template
 	chapter *template.Template
 }
 
@@ -39,17 +40,29 @@ func NewRenderer(templateDir string) (*Renderer, error) {
 		},
 	}
 
-	// Parse Layout + Inner templates (Home, Series)
-	layout, err := template.New("layout.html").Funcs(funcs).ParseFiles(
-		templateDir+"/layout.html",
-		templateDir+"/index.html",
-		templateDir+"/series.html",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse layout templates: %w", err)
+	// Helper to parse base layout + specific page
+	parse := func(page string) (*template.Template, error) {
+		// New("layout.html") matters if layout.html is the base
+		t := template.New("layout.html").Funcs(funcs)
+		return t.ParseFiles(
+			templateDir+"/layout.html",
+			templateDir+"/"+page,
+		)
 	}
 
-	// Parse Standalone Chapter template
+	// 1. Home
+	home, err := parse("index.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse home template: %w", err)
+	}
+
+	// 2. Series
+	series, err := parse("series.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse series template: %w", err)
+	}
+
+	// 3. Chapter (Standalone)
 	chapter, err := template.New("chapter.html").Funcs(funcs).ParseFiles(
 		templateDir + "/chapter.html",
 	)
@@ -57,12 +70,18 @@ func NewRenderer(templateDir string) (*Renderer, error) {
 		return nil, fmt.Errorf("failed to parse chapter template: %w", err)
 	}
 
-	return &Renderer{layout: layout, chapter: chapter}, nil
+	return &Renderer{home: home, series: series, chapter: chapter}, nil
 }
 
 func (r *Renderer) Render(w io.Writer, name string, data interface{}) error {
-	if name == "chapter.html" {
+	switch name {
+	case "index.html":
+		return r.home.ExecuteTemplate(w, "layout.html", data)
+	case "series.html":
+		return r.series.ExecuteTemplate(w, "layout.html", data)
+	case "chapter.html":
 		return r.chapter.Execute(w, data)
+	default:
+		return fmt.Errorf("unknown template: %s", name)
 	}
-	return r.layout.ExecuteTemplate(w, name, data)
 }

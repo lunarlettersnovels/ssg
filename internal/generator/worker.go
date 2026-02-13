@@ -2,7 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -196,20 +195,4 @@ func (g *Generator) renderChapterPage(series db.Series, chapter *db.Chapter, pre
 
 	path := filepath.Join("novel", series.Slug, "chapter", fmt.Sprintf("%d", chapter.ID), "index.html")
 	return g.renderToFile(path, "chapter.html", data)
-}
-
-func (g *Generator) renderToFile(relPath, templateName string, data interface{}) error {
-	fullPath := filepath.Join(g.cfg.SSG.OutputDir, relPath)
-	dir := filepath.Dir(fullPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	f, err := os.Create(fullPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	return g.renderer.Render(f, templateName, data)
 }
