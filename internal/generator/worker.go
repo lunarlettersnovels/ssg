@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/lunarlettersnovels/ssg/internal/db"
 )
@@ -52,13 +53,29 @@ func (g *Generator) generateContent() error {
 	// Stats
 	var filesGenerated uint64
 
+	// Progress Monitor
+	done := make(chan bool)
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				count := atomic.LoadUint64(&filesGenerated)
+				fmt.Printf("\rGenerated %d files...", count)
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for job := range jobs {
 				if err := g.processJob(job); err != nil {
-					fmt.Printf("Error processing job %s: %v\n", job.Type, err)
+					fmt.Printf("\nError processing job %s: %v\n", job.Type, err)
 				} else {
 					atomic.AddUint64(&filesGenerated, 1)
 				}
@@ -98,6 +115,7 @@ func (g *Generator) generateContent() error {
 
 	close(jobs)
 	wg.Wait()
+	done <- true
 
 	fmt.Printf("Generated %d files.\n", filesGenerated)
 	return nil
