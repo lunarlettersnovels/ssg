@@ -102,8 +102,10 @@ img {
     -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-[data-theme='dark'] .app-header {
-    background: #000000;
+html[data-theme='dark'] .app-header {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 body:not([data-theme='dark']) .app-header {
@@ -238,8 +240,10 @@ body:not([data-theme='dark']) .app-header {
     -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-[data-theme='dark'] .bottom-bar {
-    background: #000000;
+html[data-theme='dark'] .bottom-bar {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 body:not([data-theme='dark']) .bottom-bar {
@@ -937,8 +941,10 @@ body:not([data-theme='dark']) .bottom-bar {
     -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-[data-theme='dark'] .reader-top-bar {
-    background: #000000;
+html[data-theme='dark'] .reader-top-bar {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 body:not([data-theme='dark']) .reader-top-bar {
@@ -1132,8 +1138,10 @@ body:not([data-theme='dark']) .reader-top-bar {
     -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-[data-theme='dark'] .reader-bottom-bar {
-    background: #000000;
+html[data-theme='dark'] .reader-bottom-bar {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 body:not([data-theme='dark']) .reader-bottom-bar {
