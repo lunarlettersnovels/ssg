@@ -80,7 +80,7 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}) error {
 	case "series.html":
 		return r.series.ExecuteTemplate(w, "layout.html", data)
 	case "chapter.html":
-		return r.chapter.Execute(w, data)
+		return r.chapter.ExecuteTemplate(w, "chapter.html", data)
 	default:
 		return fmt.Errorf("unknown template: %s", name)
 	}
