@@ -29,6 +29,6 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
-	serveCmd.Flags().StringP("port", "p", "8080", "Port to serve on")
+	serveCmd.Flags().StringP("port", "p", "6969", "Port to serve on")
 	serveCmd.Flags().StringP("config", "c", "config.ini", "config file")
 }
