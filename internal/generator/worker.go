@@ -11,13 +11,14 @@ import (
 )
 
 type Job struct {
-	Type          string // "series" or "chapter"
-	Series        db.Series
-	Chapter       *db.Chapter // Metadata only initially
-	Prev          *db.Chapter
-	Next          *db.Chapter
-	CurrentIndex  int
-	TotalChapters int
+	Type           string
+	Series         db.Series
+	Chapter        *db.Chapter
+	Prev           *db.Chapter
+	Next           *db.Chapter
+	CurrentIndex   int
+	TotalChapters  int
+	SeriesChapters []db.Chapter
 }
 
 func (g *Generator) generateHomepage() error {
@@ -36,14 +37,21 @@ func (g *Generator) generateHomepage() error {
 }
 
 func (g *Generator) generateContent() error {
-	// Fetch all series
+	// 1. Fetch all series
 	seriesList, err := g.repo.GetSeriesList()
 	if err != nil {
 		return err
 	}
 
+	// 2. PRE-FETCH ALL CHAPTERS (The Performance Fix)
+	fmt.Println("Fetching all chapters from DB (this may take a moment)...")
+	allChaptersMap, err := g.repo.GetAllChaptersGrouped()
+	if err != nil {
+		return fmt.Errorf("failed to bulk fetch chapters: %w", err)
+	}
+	fmt.Printf("Loaded chapters for %d series. Starting generation...\n", len(allChaptersMap))
+
 	// Create job channel
-	// Buffer needs to be large enough or we blocking-feed it
 	jobs := make(chan Job, 1000)
 	var wg sync.WaitGroup
 
@@ -86,29 +94,19 @@ func (g *Generator) generateContent() error {
 		}()
 	}
 
-	// Dispatcher Goroutine
-	// We run this in a goroutine so we can close the channel when done
-	// and not block the main thread from waiting on WG if we were using it differently,
-	// but here we just block main thread on feeding, then wait.
-	// Actually, keeping the feed in main thread is fine as long as workers consume.
-
-	// Iterate Series
+	// Dispatch Jobs
 	for _, s := range seriesList {
-		// 1. Series Page Job
-		jobs <- Job{Type: "series", Series: s}
-
-		// 2. Fetch Chapters (Metadata)
-		chapters, err := g.repo.GetChaptersBySeriesID(s.ID)
-		if err != nil {
-			fmt.Printf("Failed to get chapters for series %s: %v\n", s.Slug, err)
-			continue
+		chapters := allChaptersMap[s.ID]
+		if chapters == nil {
+			chapters = []db.Chapter{}
 		}
 
-		// 3. Dispatch Chapter Jobs
+		// 1. Series Page Job
+		jobs <- Job{Type: "series", Series: s, SeriesChapters: chapters}
+
+		// 2. Chapter Jobs
 		total := len(chapters)
 		for i := range chapters {
-			// We need pointers for Prev/Next
-			// Be careful with loop variable scope, but we access by index 'i'
 			var prev, next *db.Chapter
 			if i > 0 {
 				prev = &chapters[i-1]
@@ -117,7 +115,6 @@ func (g *Generator) generateContent() error {
 				next = &chapters[i+1]
 			}
 
-			// Copy chapter to avoid pointer to loop var issues if we used &ch
 			current := chapters[i]
 
 			jobs <- Job{
@@ -142,28 +139,14 @@ func (g *Generator) generateContent() error {
 
 func (g *Generator) processJob(job Job) error {
 	if job.Type == "series" {
-		return g.renderSeriesPage(job.Series)
+		return g.renderSeriesPage(job.Series, job.SeriesChapters)
 	} else if job.Type == "chapter" {
-		// Fetch content just-in-time
-		fullChapter, err := g.repo.GetChapterContent(job.Chapter.ID)
-		if err != nil {
-			return err
-		}
-		if fullChapter == nil {
-			return fmt.Errorf("chapter content not found for id %d", job.Chapter.ID)
-		}
-
-		return g.renderChapterPage(job.Series, fullChapter, job.Prev, job.Next, job.CurrentIndex, job.TotalChapters)
+		return g.renderChapterPage(job.Series, job.Chapter, job.Prev, job.Next, job.CurrentIndex, job.TotalChapters)
 	}
 	return nil
 }
 
-func (g *Generator) renderSeriesPage(series db.Series) error {
-	chapters, err := g.repo.GetChaptersBySeriesID(series.ID)
-	if err != nil {
-		return err
-	}
-
+func (g *Generator) renderSeriesPage(series db.Series, chapters []db.Chapter) error {
 	data := struct {
 		Series   db.Series
 		Chapters []db.Chapter

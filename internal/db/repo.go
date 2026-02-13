@@ -38,7 +38,32 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// GetSeriesList fetches all series for the homepage/sitemap
+func (r *Repository) GetAllChaptersGrouped() (map[uint64][]Chapter, error) {
+	query := `SELECT id, series_id, chapter_number, title, content, created_at, updated_at 
+              FROM chapters 
+              ORDER BY series_id, chapter_number ASC`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Map: SeriesID -> Slice of Chapters
+	grouped := make(map[uint64][]Chapter)
+
+	for rows.Next() {
+		var c Chapter
+		// SCAN ALL COLUMNS INCLUDING CONTENT
+		if err := rows.Scan(&c.ID, &c.SeriesID, &c.ChapterNumber, &c.Title, &c.Content, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		grouped[c.SeriesID] = append(grouped[c.SeriesID], c)
+	}
+
+	return grouped, nil
+}
+
 func (r *Repository) GetSeriesList() ([]Series, error) {
 	query := `SELECT id, slug, title, thumbnail_url, author, description, status, genre, release_year, source_id, created_at, updated_at FROM series ORDER BY updated_at DESC`
 	rows, err := r.db.Query(query)
@@ -58,7 +83,6 @@ func (r *Repository) GetSeriesList() ([]Series, error) {
 	return list, nil
 }
 
-// GetSeriesDetail fetches a single series by slug
 func (r *Repository) GetSeriesDetail(slug string) (*Series, error) {
 	query := `SELECT id, slug, title, thumbnail_url, author, description, status, genre, release_year, source_id, created_at, updated_at FROM series WHERE slug = ?`
 	row := r.db.QueryRow(query, slug)
@@ -73,7 +97,6 @@ func (r *Repository) GetSeriesDetail(slug string) (*Series, error) {
 	return &s, nil
 }
 
-// GetChaptersBySeriesID fetches all chapters for a series
 func (r *Repository) GetChaptersBySeriesID(seriesID uint64) ([]Chapter, error) {
 	query := `SELECT id, series_id, chapter_number, title, created_at, updated_at FROM chapters WHERE series_id = ? ORDER BY chapter_number ASC`
 	rows, err := r.db.Query(query, seriesID)
@@ -94,7 +117,6 @@ func (r *Repository) GetChaptersBySeriesID(seriesID uint64) ([]Chapter, error) {
 	return list, nil
 }
 
-// GetChapterContent fetches a single chapter with content
 func (r *Repository) GetChapterContent(id uint64) (*Chapter, error) {
 	query := `SELECT id, series_id, chapter_number, title, content, created_at, updated_at FROM chapters WHERE id = ?`
 	row := r.db.QueryRow(query, id)
